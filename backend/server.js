@@ -34,20 +34,25 @@ app.use("/api/", limiter);
 
 // ─── CORS Configuration ──────────────────────────────────────────────────────
 const allowedOrigins = [
-  process.env.FRONTEND_URL || "http://localhost:3000",
+  process.env.FRONTEND_URL,          // e.g. https://your-app.vercel.app
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "http://localhost:3001",
   "http://127.0.0.1:3001",
   "http://localhost:3002",
   "http://127.0.0.1:3002",
-];
+].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g., Postman, mobile apps)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) return callback(null, true);
+      // Allow whitelisted origins OR any *.vercel.app preview URL
+      if (
+        allowedOrigins.includes(origin) ||
+        /\.vercel\.app$/.test(origin)
+      ) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
