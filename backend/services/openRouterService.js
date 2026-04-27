@@ -9,9 +9,15 @@ const axios = require("axios");
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
+// Ordered by preference: try newer/faster models first, fall back to stable ones.
+// Having 6 options means transient rate-limits on 1-2 models won't kill the request.
 const GEMINI_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-1.5-pro",
+  "gemini-2.5-flash-preview-04-17", // Latest preview — very capable
+  "gemini-2.0-flash",               // Fast and reliable
+  "gemini-2.5-flash",               // Alternative 2.5 slug
+  "gemini-1.5-flash",               // Stable, high quota
+  "gemini-1.5-pro",                 // Higher quality fallback
+  "gemini-1.0-pro",                 // Last resort — always available
 ];
 
 const FREE_MODELS = [
@@ -233,19 +239,39 @@ const callOpenRouter = async (messages, temperature = 0.3, maxTokens = 1000) => 
 };
 
 const callWithFallback = async (messages, temperature = 0.3, maxTokens = 1000) => {
-  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim() !== "" && process.env.GEMINI_API_KEY !== "your_gemini_api_key_here") {
+  const hasGeminiKey =
+    process.env.GEMINI_API_KEY &&
+    process.env.GEMINI_API_KEY.trim() !== "" &&
+    process.env.GEMINI_API_KEY !== "your_gemini_api_key_here";
+
+  const hasOpenRouterKey =
+    process.env.OPENROUTER_API_KEY &&
+    process.env.OPENROUTER_API_KEY.trim() !== "" &&
+    process.env.OPENROUTER_API_KEY !== "your_openrouter_api_key_here";
+
+  if (!hasGeminiKey && !hasOpenRouterKey) {
+    // Neither key is configured — give a clear actionable error
+    console.error("❌ No AI API key found! Set GEMINI_API_KEY in your Render environment variables.");
+    throw new Error(
+      "No AI API key is configured on the server. Please set GEMINI_API_KEY in the Render dashboard environment variables."
+    );
+  }
+
+  if (hasGeminiKey) {
     try {
       return await callGemini(messages, temperature, maxTokens);
     } catch (error) {
-      console.warn("⚠️ Gemini failed, falling back to OpenRouter...", error.message);
-      // Fallback to OpenRouter if OpenRouter API Key is set
-      if (process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_API_KEY.trim() !== "" && process.env.OPENROUTER_API_KEY !== "your_openrouter_api_key_here") {
+      if (hasOpenRouterKey) {
+        console.warn("⚠️ All Gemini models failed, falling back to OpenRouter...", error.message);
         return callOpenRouter(messages, temperature, maxTokens);
       }
+      // No OpenRouter key — surface a helpful error
+      console.error("❌ Gemini failed and no OpenRouter key is set. Error:", error.message);
       throw error;
     }
   }
 
+  // Only OpenRouter key is set
   return callOpenRouter(messages, temperature, maxTokens);
 };
 
