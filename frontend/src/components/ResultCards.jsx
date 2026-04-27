@@ -3,20 +3,18 @@
  * Displays structured analysis results in beautiful card format
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   getSentimentClass,
   getSentimentEmoji,
   getEmotionEmoji,
   getEmotionColor,
   copyToClipboard,
-  exportAsJSON,
   truncateText,
 } from '../utils/helpers';
 import './ResultCards.css';
 
 const ResultCards = ({ analysis }) => {
-  const [copied, setCopied] = useState(false);
 
   if (!analysis) return null;
 
@@ -27,59 +25,11 @@ const ResultCards = ({ analysis }) => {
   const sortedEmotions = Object.entries(analysis.emotions || {})
     .sort(([, a], [, b]) => b - a);
 
-  // Handle copy to clipboard
-  const handleCopy = async () => {
-    const textToCopy = `
-AI Sentiment Analysis Results
-==============================
-Text: "${analysis.analyzedText}"
-
-Sentiment: ${analysis.sentiment} (${analysis.confidence}% confidence)
-Language: ${analysis.language || 'N/A'}
-
-Emotions:
-${sortedEmotions.map(([k, v]) => `  ${k}: ${v}%`).join('\n')}
-
-Keywords: ${(analysis.keywords || []).join(', ')}
-
-Suggestion: ${analysis.suggestion}
-    `.trim();
-
-    const success = await copyToClipboard(textToCopy);
-    if (success) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  // Handle JSON export
-  const handleExport = () => {
-    exportAsJSON(analysis, 'sentiment-analysis');
-  };
-
   return (
     <div className="results-container" id="results-section">
       {/* ─── Header ─────────────────────────────────────────────────────── */}
       <div className="results-header">
         <h2 className="results-title">Analysis Results</h2>
-        <div className="results-actions">
-          <button
-            id="copy-results-btn"
-            className="btn btn-ghost btn-sm"
-            onClick={handleCopy}
-            data-tooltip="Copy results"
-          >
-            {copied ? '✅ Copied!' : '📋 Copy'}
-          </button>
-          <button
-            id="export-json-btn"
-            className="btn btn-ghost btn-sm"
-            onClick={handleExport}
-            data-tooltip="Export as JSON"
-          >
-            📤 Export JSON
-          </button>
-        </div>
       </div>
 
       {/* ─── Analyzed Text Preview ──────────────────────────────────────── */}

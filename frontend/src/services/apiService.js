@@ -11,7 +11,7 @@ import axios from 'axios';
 // e.g. https://your-backend.onrender.com
 // In local development the Vite proxy rewrites /api → http://localhost:5000
 const BASE_URL = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}/api`
+  ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`
   : '/api';
 
 // Create a configured axios instance
