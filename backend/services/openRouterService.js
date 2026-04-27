@@ -9,15 +9,13 @@ const axios = require("axios");
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
-// Ordered by preference: try newer/faster models first, fall back to stable ones.
-// Having 6 options means transient rate-limits on 1-2 models won't kill the request.
+// Real, verified model IDs from https://ai.google.dev/gemini-api/docs/models (April 2026)
+// Ordered: newest preview → stable → older stable fallback
 const GEMINI_MODELS = [
-  "gemini-2.5-flash-preview-04-17", // Latest preview — very capable
-  "gemini-2.0-flash",               // Fast and reliable
-  "gemini-2.5-flash",               // Alternative 2.5 slug
-  "gemini-1.5-flash",               // Stable, high quota
-  "gemini-1.5-pro",                 // Higher quality fallback
-  "gemini-1.0-pro",                 // Last resort — always available
+  "gemini-3.1-flash-lite-preview",  // ✅ Preview (production-allowed) — fastest new model
+  "gemini-3-flash-preview",         // ✅ Preview (production-allowed) — frontier performance
+  "gemini-2.5-flash",               // ✅ Stable — best price/performance, high quota
+  "gemini-2.5-flash-lite",          // ✅ Stable — fastest & cheapest in 2.5 family
 ];
 
 const FREE_MODELS = [
