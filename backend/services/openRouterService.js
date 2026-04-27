@@ -32,7 +32,8 @@ const createGeminiClient = () => {
 
   return axios.create({
     baseURL: GEMINI_BASE_URL,
-    timeout: 30000,
+    // 20s per model × 2 models = 40s max — fits inside 90s frontend timeout
+    timeout: 20000,
     headers: {
       "Content-Type": "application/json",
     },
@@ -54,15 +55,20 @@ const createOpenRouterClient = () => {
     );
   }
 
+  // Use the real deployed frontend URL so OpenRouter doesn't deprioritise localhost referrers
+  const referer =
+    process.env.FRONTEND_URL || process.env.VITE_API_URL || "http://localhost:3000";
+
   return axios.create({
     baseURL: OPENROUTER_BASE_URL,
     headers: {
       Authorization: `Bearer ${apiKey.trim()}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "http://localhost:3000",
+      "HTTP-Referer": referer,
       "X-Title": "AI Sentiment Intelligence System",
     },
-    timeout: 30000,
+    // 25s per model; with 4 free models max total = 100s, but we stop early on success
+    timeout: 25000,
   });
 };
 

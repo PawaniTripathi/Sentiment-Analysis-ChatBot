@@ -86,11 +86,43 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // ─── Start Server ────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`\n🚀 AI Sentiment Intelligence System Backend`);
   console.log(`📡 Server running on: http://localhost:${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
   console.log(`✅ Ready to analyze sentiments!\n`);
+
+  // ─── Keep-Alive Self-Ping (Render free tier) ──────────────────────────────
+  // Render spins down free services after 15 min of inactivity, causing cold
+  // starts that take 30-60s and look like errors to the user.
+  // Pinging /health every 14 min keeps the dyno awake at zero extra cost.
+  if (process.env.NODE_ENV === "production" && process.env.RENDER_EXTERNAL_URL) {
+    const https = require("https");
+    const pingUrl = `${process.env.RENDER_EXTERNAL_URL}/health`;
+
+    setInterval(() => {
+      https.get(pingUrl, (res) => {
+        console.log(`🏓 Keep-alive ping → ${res.statusCode}`);
+      }).on("error", (err) => {
+        console.warn(`⚠️  Keep-alive ping failed: ${err.message}`);
+      });
+    }, 14 * 60 * 1000); // every 14 minutes
+
+    console.log(`🏓 Keep-alive pinger active → ${pingUrl}`);
+  }
 });
+
+// ─── Graceful Shutdown ────────────────────────────────────────────────────────
+const shutdown = (signal) => {
+  console.log(`\n${signal} received. Shutting down gracefully…`);
+  server.close(() => {
+    console.log("✅ HTTP server closed.");
+    process.exit(0);
+  });
+  // Force exit after 10s if connections are still open
+  setTimeout(() => process.exit(1), 10000);
+};
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT",  () => shutdown("SIGINT"));
 
 module.exports = app;
